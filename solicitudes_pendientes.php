@@ -1,4 +1,5 @@
 <?php
+session_start();
 include "header.php";
 include "sidebarmenu.php";
 include "conexionBD.php";
@@ -18,13 +19,12 @@ $query = "
 ";
 $solicitudes = $conexion->datos($query);
 
-// Procesar aceptación o rechazo de solicitud
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['rol']) && $_SESSION['rol'] !== 'empleado') {
     $idSolicitud = $_POST['id_solicitud'];
-    
+
     if (isset($_POST['aceptar'])) {
         $fechaEntrega = date('Y-m-d H:i:s');
-        
+                
         // Actualizar estado de la solicitud a "activa" y establecer fecha de entrega
         $queryUpdateSolicitud = "UPDATE Solicitud SET estado = 'activa', fecha_entrega = ? WHERE id_solicitud = ?";
         $conexion->ejecutarConsultaPreparada($queryUpdateSolicitud, "si", $fechaEntrega, $idSolicitud);
@@ -43,7 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (isset($_POST['rechazar'])) {
-        // Actualizar estado de la solicitud a "rechazada"
         $queryUpdateSolicitud = "UPDATE Solicitud SET estado = 'rechazada' WHERE id_solicitud = ?";
         $conexion->ejecutarConsultaPreparada($queryUpdateSolicitud, "i", $idSolicitud);
         
@@ -85,11 +84,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <td><?php echo $solicitud['comentarios']; ?></td>
                             <td><?php echo $solicitud['files'] ?: 'Ninguno'; ?></td>
                             <td>
-                                <form method="POST" style="display:inline;">
-                                    <input type="hidden" name="id_solicitud" value="<?php echo $solicitud['id_solicitud']; ?>">
-                                    <button type="submit" name="aceptar" class="btn btn-success">Aceptar</button>
-                                    <button type="submit" name="rechazar" class="btn btn-danger">Rechazar</button>
-                                </form>
+                                <?php if (isset($_SESSION['rol']) && $_SESSION['rol'] !== 'empleado'): ?>
+                                    <form method="POST" style="display:inline;">
+                                        <input type="hidden" name="id_solicitud" value="<?php echo $solicitud['id_solicitud']; ?>">
+                                        <button type="submit" name="aceptar" class="btn btn-success">Aceptar</button>
+                                        <button type="submit" name="rechazar" class="btn btn-danger">Rechazar</button>
+                                    </form>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endwhile; ?>
@@ -103,3 +104,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $conexion->cerrarconexion();
 include "footer.php";
 ?>
+

@@ -1,10 +1,15 @@
 <?php
+session_start(); 
+
 include "header.php";
 include "sidebarmenu.php";
 include "conexionBD.php";
 
 $conexion = new conexionBD();
 $conexion->conectar();
+
+$idEmpleado = $_SESSION['id_empleado'];
+$rolUsuario = $_SESSION['rol'];
 
 // Obtener filtros
 $estadoFiltro = $_GET['estado'] ?? '';
@@ -13,11 +18,17 @@ $itemFiltro = $_GET['item'] ?? '';
 $empleadoFiltro = $_GET['empleado'] ?? '';
 
 // Construcción de la consulta con filtros dinámicos
-$query = "SELECT s.id_solicitud, s.id_empleado, s.estado, s.fecha_entrega, s.fecha_devolucion, s.en_alerta, s.comentarios, e.nombre
+$query = "SELECT s.id_solicitud, s.estado, s.fecha_entrega, s.fecha_devolucion, s.en_alerta, s.comentarios,
+                 e.nombre, e.apellidos, e.documento_identidad, d.nombre AS departamento, sub.nombre AS subnivel
           FROM Solicitud s
           JOIN Empleado e ON s.id_empleado = e.id_empleado
+          JOIN Departamento d ON e.id_departamento = d.id_departamento
+          JOIN Subnivel sub ON e.id_subnivel = sub.id_subnivel
           WHERE 1=1";
 
+if ($rolUsuario == "empleado") {
+    $query .= " AND s.id_empleado = '$idEmpleado'";
+}
 if ($estadoFiltro) {
     $query .= " AND s.estado = '$estadoFiltro'";
 }
@@ -28,7 +39,7 @@ if ($itemFiltro) {
     $query .= " AND s.id_solicitud IN (SELECT id_solicitud FROM SolicitudFile WHERE id_file IN 
                (SELECT id_file FROM File WHERE numero_item = '$itemFiltro'))";
 }
-if ($empleadoFiltro) {
+if ($empleadoFiltro && $rolUsuario != "empleado") {
     $query .= " AND e.nombre LIKE '%$empleadoFiltro%'";
 }
 
@@ -44,6 +55,7 @@ $result = $conexion->datos($query);
 
     <section class="content">
         <div class="container-fluid">
+
             <form method="GET" action="">
                 <div class="row">
                     <div class="col-md-3">
@@ -78,11 +90,13 @@ $result = $conexion->datos($query);
                     <tr>
                         <th>ID Solicitud</th>
                         <th>Empleado</th>
+                        <th>Documento</th>
+                        <th>Departamento</th>
+                        <th>Subnivel</th>
                         <th>Estado</th>
                         <th>Fecha Entrega</th>
                         <th>Fecha Devolución</th>
                         <th>Comentarios</th>
-                        <th>Archivos Asociados</th>
                         <th>Acción</th>
                     </tr>
                 </thead>
@@ -90,25 +104,18 @@ $result = $conexion->datos($query);
                     <?php while ($solicitud = $result->fetch_assoc()): ?>
                         <tr>
                             <td><?php echo $solicitud['id_solicitud']; ?></td>
-                            <td><?php echo $solicitud['nombre']; ?></td>
+                            <td><?php echo $solicitud['nombre'] . ' ' . $solicitud['apellidos']; ?></td>
+                            <td><?php echo $solicitud['documento_identidad']; ?></td>
+                            <td><?php echo $solicitud['departamento']; ?></td>
+                            <td><?php echo $solicitud['subnivel']; ?></td>
                             <td><?php echo ucfirst($solicitud['estado']); ?></td>
                             <td><?php echo $solicitud['fecha_entrega'] ?? 'N/A'; ?></td>
                             <td><?php echo $solicitud['fecha_devolucion'] ?? 'N/A'; ?></td>
-                            <td><?php echo $solicitud['comentarios']; ?></td>
                             <td>
-                                <?php
-                                $idSolicitud = $solicitud['id_solicitud'];
-                                $queryFiles = "SELECT f.numero_item FROM File f 
-                                               JOIN SolicitudFile sf ON f.id_file = sf.id_file 
-                                               WHERE sf.id_solicitud = $idSolicitud";
-                                $filesResult = $conexion->datos($queryFiles);
-                                while ($file = $filesResult->fetch_assoc()) {
-                                    echo $file['numero_item'] . ', ';
-                                }
-                                ?>
+                                <button class="btn btn-info" onclick="mostrarComentario('<?php echo addslashes($solicitud['comentarios']); ?>')">Ver</button>
                             </td>
                             <td>
-                                <?php if ($solicitud['estado'] == 'activa' || $solicitud['estado'] == 'alerta'): ?>
+                                <?php if ($rolUsuario != 'empleado' && ($solicitud['estado'] == 'activa' || $solicitud['estado'] == 'alerta')): ?>
                                     <button class="btn btn-success" onclick="marcarDevuelto(<?php echo $solicitud['id_solicitud']; ?>)">Devuelto</button>
                                 <?php endif; ?>
                             </td>
@@ -118,6 +125,14 @@ $result = $conexion->datos($query);
             </table>
         </div>
     </section>
+</div>
+
+<div id="comentarioModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="close" onclick="cerrarModal()">&times;</span>
+        <h2>Comentario</h2>
+        <p id="comentarioTexto"></p>
+    </div>
 </div>
 
 <script>
@@ -134,6 +149,15 @@ function marcarDevuelto(idSolicitud) {
             location.reload();
         });
     }
+}
+
+function mostrarComentario(comentario) {
+    document.getElementById("comentarioTexto").innerText = comentario;
+    document.getElementById("comentarioModal").style.display = "block";
+}
+
+function cerrarModal() {
+    document.getElementById("comentarioModal").style.display = "none";
 }
 </script>
 

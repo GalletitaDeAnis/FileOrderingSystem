@@ -1,3 +1,15 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+  session_start();
+}
+
+// Obtener el nombre completo del usuario
+$nombre_usuario = isset($_SESSION['nombre']) && isset($_SESSION['apellidos']) ? $_SESSION['nombre'] . ' ' . $_SESSION['apellidos'] : 'Usuario';
+
+// Obtener el rol del usuario
+$rol_usuario = isset($_SESSION['rol']) ? $_SESSION['rol'] : ''; // "archivos" o "empleado"
+?>
+
 <!-- Main Sidebar Container -->
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
   <!-- Brand Logo -->
@@ -13,7 +25,7 @@
         <img src="asset/dist/img/user2-160x160.jpg" class="img-circle elevation-2" alt="User Image">
       </div>
       <div class="info">
-        <a href="#" class="d-block">Paolo Pizarro Arispe</a>
+        <a href="#" class="d-block"><?php echo htmlspecialchars($nombre_usuario); ?></a>
       </div>
     </div>
 
@@ -50,7 +62,8 @@
           </a>
         </li>
 
-        <!-- Sección de Estadísticas -->
+        <!-- Sección de Estadísticas (Solo visible si el rol es 'archivos') -->
+        <?php if ($rol_usuario === 'archivos') : ?>
         <li class="nav-item">
           <a href="#" class="nav-link">
             <i class="nav-icon fas fa-chart-bar"></i>
@@ -71,6 +84,7 @@
             </li>
           </ul>
         </li>
+        <?php endif; ?>
 
       </ul>
     </nav>
@@ -78,4 +92,3 @@
   </div>
   <!-- /.sidebar -->
 </aside>
-

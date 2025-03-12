@@ -1,4 +1,5 @@
 <?php
+session_start();
 include "header.php";
 include "sidebarmenu.php";
 include "conexionBD.php";
@@ -6,16 +7,14 @@ include "conexionBD.php";
 $conexion = new conexionBD();
 $conexion->conectar();
 
-// Obtener filtros (excepto estado, que siempre será 'alerta')
 $fechaEntregaFiltro = $_GET['fecha_entrega'] ?? '';
 $itemFiltro = $_GET['item'] ?? '';
 $empleadoFiltro = $_GET['empleado'] ?? '';
 
-// Construcción de la consulta con filtros dinámicos
 $query = "SELECT s.id_solicitud, s.id_empleado, s.estado, s.fecha_entrega, s.fecha_devolucion, s.en_alerta, s.comentarios, e.nombre
           FROM Solicitud s
           JOIN Empleado e ON s.id_empleado = e.id_empleado
-          WHERE s.estado = 'alerta'"; // Solo solicitudes en alerta
+          WHERE s.estado = 'alerta'";
 
 if ($fechaEntregaFiltro) {
     $query .= " AND s.fecha_entrega = '$fechaEntregaFiltro'";
@@ -40,24 +39,6 @@ $result = $conexion->datos($query);
 
     <section class="content">
         <div class="container-fluid">
-            <form method="GET" action="">
-                <div class="row">
-                    <div class="col-md-4">
-                        <label>Fecha de Entrega:</label>
-                        <input type="date" name="fecha_entrega" class="form-control">
-                    </div>
-                    <div class="col-md-4">
-                        <label>Número de Ítem:</label>
-                        <input type="text" name="item" class="form-control">
-                    </div>
-                    <div class="col-md-4">
-                        <label>Nombre del Empleado:</label>
-                        <input type="text" name="empleado" class="form-control">
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-primary mt-3">Filtrar</button>
-            </form>
-
             <table class="table table-bordered mt-4">
                 <thead>
                     <tr>
@@ -91,7 +72,9 @@ $result = $conexion->datos($query);
                                 ?>
                             </td>
                             <td>
-                                <button class="btn btn-success" onclick="marcarDevuelto(<?php echo $solicitud['id_solicitud']; ?>)">Devuelto</button>
+                                <?php if (isset($_SESSION['rol']) && $_SESSION['rol'] !== 'empleado'): ?>
+                                    <button class="btn btn-success" onclick="marcarDevuelto(<?php echo $solicitud['id_solicitud']; ?>)">Devuelto</button>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endwhile; ?>

@@ -1,4 +1,5 @@
 <?php
+session_start(); // Iniciar sesión para obtener ID del empleado
 include "header.php";
 include "sidebarmenu.php";
 include "conexionBD.php";
@@ -6,23 +7,29 @@ include "conexionBD.php";
 $conexion = new conexionBD();
 $conexion->conectar();
 
+if (!isset($_SESSION['id_empleado'])) {
+    echo "<script>alert('Debe iniciar sesión para realizar una solicitud.'); window.location='login.php';</script>";
+    exit();
+}
+
+$idEmpleado = $_SESSION['id_empleado']; // Obtener el ID del empleado logueado
+
 // Obtener files disponibles (estado 'libre' o 'ocupado')
 $query = "SELECT id_file, numero_item, nombre_empleado, documento_identidad, estado FROM File";
 $result = $conexion->datos($query);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['solicitar'])) {
-    $filesSeleccionados = isset($_POST['files']) ? explode(',', $_POST['files']) : []; // Convertir string en array
+    $filesSeleccionados = isset($_POST['files']) ? explode(',', $_POST['files']) : [];
     $comentarios = $_POST['comentarios'] ?? '';
-    $idEmpleado = 2; // ID del empleado (debes obtenerlo de la sesión o del formulario)
 
     if (!empty($filesSeleccionados)) {
-        // Insertar nueva solicitud con comentarios
+        // Insertar nueva solicitud con el ID del empleado en sesión
         $queryInsert = "INSERT INTO Solicitud (id_empleado, estado, fecha_entrega, fecha_devolucion, en_alerta, comentarios) 
                         VALUES (?, 'pendiente', NULL, NULL, FALSE, ?)";
         $stmt = $conexion->getConexion()->prepare($queryInsert);
         $stmt->bind_param("is", $idEmpleado, $comentarios);
         $stmt->execute();
-        $idSolicitud = $stmt->insert_id; // Obtener el ID de la solicitud recién insertada
+        $idSolicitud = $stmt->insert_id; // Obtener el ID de la solicitud recién creada
 
         // Asociar cada file a la solicitud
         $queryRelacion = "INSERT INTO SolicitudFile (id_solicitud, id_file) VALUES (?, ?)";
@@ -34,6 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['solicitar'])) {
         }
 
         echo "<script>alert('Solicitud enviada exitosamente.'); window.location='principal.php';</script>";
+    } else {
+        echo "<script>alert('Debe seleccionar al menos un archivo.');</script>";
     }
 }
 ?>

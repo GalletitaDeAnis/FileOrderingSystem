@@ -16,8 +16,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($result && $result->num_rows > 0) {
         $empleado = $result->fetch_assoc();
 
-        // Almacenar datos en sesión
-        $_SESSION['documento_identidad'] = $documento_identidad;
+        // Guardar información del usuario en la sesión
+        $_SESSION['id_empleado'] = $empleado['id_empleado'];
+        $_SESSION['documento_identidad'] = $empleado['documento_identidad'];
         $_SESSION['nombre'] = $empleado['nombre'];
         $_SESSION['apellidos'] = $empleado['apellidos'];
         $_SESSION['rol'] = $empleado['rol'];
@@ -48,7 +49,7 @@ $conexion->cerrarconexion();
 <body class="hold-transition login-page">
 <div class="login-box">
   <div class="login-logo">
-    <a href="#"><b>SISTEMA DE CONTROL DE PERSONAL</b></a>
+    <a href="#"><b>SISTEMA DE CONTROL DE FILES</b></a>
   </div>
   <div class="card">
     <div class="card-body login-card-body">
